@@ -40,8 +40,8 @@ void MobileRobotSimulator::get_params()
 {
      nh_ptr->param<bool>("publish_map_transform", publish_map_transform , false);
      nh_ptr->param<double>("publish_rate", publish_rate, 10.0);
-     nh_ptr->param<std::string>("velocity_topic", velocity_topic, "/cmd_vel");
-     nh_ptr->param<std::string>("odometry_topic", odometry_topic, "/odom");
+     nh_ptr->param<std::string>("velocity_topic", velocity_topic, "cmd_vel");
+     nh_ptr->param<std::string>("odometry_topic", odometry_topic, "odom");
      nh_ptr->param<std::string>("base_link_topic", base_link_topic, "base_link");
 }
 
