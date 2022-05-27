@@ -9,7 +9,7 @@ MobileRobotSimulator::MobileRobotSimulator(ros::NodeHandle *nh)
     get_params();
     odom_pub = nh_ptr->advertise<nav_msgs::Odometry>(odometry_topic,50); // odometry publisher
     vel_sub = nh_ptr->subscribe(velocity_topic,5,&MobileRobotSimulator::vel_callback,this); // velocity subscriber
-    
+
     // initialize timers
     last_update = ros::Time::now();
     last_vel = last_update - ros::Duration(0.1);
@@ -26,9 +26,9 @@ MobileRobotSimulator::MobileRobotSimulator(ros::NodeHandle *nh)
         map_trans.child_frame_id_ = "/odom";
         map_trans.setIdentity();
     }
-    
+
     ROS_INFO("Initialized mobile robot simulator");
-    
+
 }
 
 MobileRobotSimulator::~MobileRobotSimulator()
@@ -40,8 +40,9 @@ void MobileRobotSimulator::get_params()
 {
      nh_ptr->param<bool>("publish_map_transform", publish_map_transform , false);
      nh_ptr->param<double>("publish_rate", publish_rate, 10.0);
-     nh_ptr->param<std::string>("velocity_topic", velocity_topic, "/cmd_vel");
-     nh_ptr->param<std::string>("odometry_topic", odometry_topic, "/odom");
+     nh_ptr->param<std::string>("velocity_topic", velocity_topic, "cmd_vel");
+     nh_ptr->param<std::string>("odometry_topic", odometry_topic, "odom");
+     nh_ptr->param<std::string>("base_link_frame", base_link_frame, "base_link");
 }
 
 
@@ -72,7 +73,7 @@ void MobileRobotSimulator::update_loop(const ros::TimerEvent& event)
     // publish odometry and tf
     odom_pub.publish(odom);
     get_tf_from_odom(odom);
-    tf_broadcaster.sendTransform(odom_trans); // odom -> base_link
+    tf_broadcaster.sendTransform(odom_trans); // odom -> base_link_frame
     message_received = false;
     // should we publish the map transform?
     if (!publish_map_transform) return;
@@ -88,7 +89,7 @@ void MobileRobotSimulator::update_odom_from_vel(geometry_msgs::Twist vel, ros::D
     double delta_y = (vel.linear.x * sin(th) + vel.linear.y * cos(th)) * time_diff.toSec();
     double delta_th = vel.angular.z * time_diff.toSec();
     ROS_DEBUG_STREAM("Delta - x: " << delta_x << " y: " << delta_y << " th: " << delta_th);
-    
+
     // update odometry
     odom.header.stamp = measure_time;
     odom.header.frame_id = "odom";
@@ -98,7 +99,7 @@ void MobileRobotSimulator::update_odom_from_vel(geometry_msgs::Twist vel, ros::D
     th += delta_th;
     odom.pose.pose.orientation = tf::createQuaternionMsgFromYaw(th);
     // set velocity
-    odom.child_frame_id = "base_link";
+    odom.child_frame_id = base_link_frame;
     odom.twist.twist = vel;
     ROS_DEBUG_STREAM("Odometry - x: " << odom.pose.pose.position.x << " y: " << odom.pose.pose.position.y << " th: " << th);
 }
@@ -136,18 +137,18 @@ void MobileRobotSimulator::init_pose_callback(const geometry_msgs::PoseWithCovar
         return;
     }
     ROS_INFO("Received pose estimate of mobile base");
-    
-    // msg is map -> base_link
+
+    // msg is map -> base_link_frame
     tf::StampedTransform msg_t;
     msg_t.setOrigin(tf::Vector3(msg->pose.pose.position.x,msg->pose.pose.position.y,msg->pose.pose.position.z));
     msg_t.setRotation(tf::Quaternion(msg->pose.pose.orientation.x,msg->pose.pose.orientation.y,msg->pose.pose.orientation.z,msg->pose.pose.orientation.w));
-    ROS_DEBUG_STREAM("map -> base_link - x: " << msg_t.getOrigin().getX() << " y: " << msg_t.getOrigin().getY());
-    // get odom -> base_link
-    ROS_DEBUG_STREAM("odom -> base_link - x: " << odom_trans.getOrigin().getX() << " y: " << odom_trans.getOrigin().getY());
+    ROS_DEBUG_STREAM("map -> base_link_frame - x: " << msg_t.getOrigin().getX() << " y: " << msg_t.getOrigin().getY());
+    // get odom -> base_link_frame
+    ROS_DEBUG_STREAM("odom -> base_link_frame - x: " << odom_trans.getOrigin().getX() << " y: " << odom_trans.getOrigin().getY());
     // calculate map -> odom and save as stamped
     tf::StampedTransform map_t = tf::StampedTransform(msg_t * odom_trans.inverse(), msg->header.stamp, "map", "odom");
     ROS_DEBUG_STREAM("map -> odom - x: " << map_t.getOrigin().getX() << " y: " << map_t.getOrigin().getY());
-    map_trans = map_t;    
+    map_trans = map_t;
 }
 
 

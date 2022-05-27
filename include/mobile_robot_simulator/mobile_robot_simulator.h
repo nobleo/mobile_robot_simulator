@@ -20,13 +20,13 @@ public:
 
     MobileRobotSimulator(ros::NodeHandle *nh); // default constructor
     ~MobileRobotSimulator(); // default destructor
-    
+
     /*! start the simulation loop */
-    void start(); // 
-    
+    void start(); //
+
     /*! stop everything */
     void stop();
-    
+
     bool publish_map_transform; // whether or not to publish the map transform
 
 
@@ -37,7 +37,7 @@ private:
 
     /*! main update loop */
     void update_loop(const ros::TimerEvent& event);
-    
+
     /*! update the odometry info based on velocity and duration */
     void update_odom_from_vel(geometry_msgs::Twist vel, ros::Duration time_diff);
 
@@ -61,24 +61,23 @@ private:
     ros::Time measure_time; // this incoming velocity command
     bool message_received = false;
     ros::NodeHandle * nh_ptr;
-    
+
     bool is_running;
-    
+
     // ROS interfaces
     ros::Publisher odom_pub;
     ros::Subscriber vel_sub;
-    ros::Subscriber init_pose_sub;    
-    tf::TransformBroadcaster tf_broadcaster; 
-    
+    ros::Subscriber init_pose_sub;
+    tf::TransformBroadcaster tf_broadcaster;
+
     //Topics
     std::string velocity_topic;
     std::string odometry_topic;
-    
-    ros::Timer loop_timer; // timer for the update loop
-    
-    double th = 0.0; // current pose (only need yaw, rest is calculated)
+    std::string base_link_frame;
 
-    
+    ros::Timer loop_timer; // timer for the update loop
+
+    double th = 0.0; // current pose (only need yaw, rest is calculated)
 
 }; // end class
 

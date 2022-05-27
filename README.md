@@ -1,5 +1,5 @@
 # mobile_robot_simulator
-A simple ROS simulator for mobile robots. Two nodes are included, that simulate a mobile base and a laser scanner. 
+A simple ROS simulator for mobile robots. Two nodes are included, that simulate a mobile base and a laser scanner.
 This is useful if some high-level simulation is needed. The package is inspired by the industrial_robot_simulator package in ROS Industrial.
 
 The package includes two nodes, as well as a library for each of the simulators to include in other projects. For most uses, the included launch file should be sufficient -- see description of parameters for each node below.
@@ -12,7 +12,7 @@ Subscribes to incoming velocity commands, and updates odometry based on this. Al
 - `/tf` - publishes 2 transforms: /odom -> /base_link and /map -> /odom (last transform optional)
 
 ### Subscriptions
-- `/cmd_vel` (geometry_msgs/Twist) - velocity commands 
+- `/cmd_vel` (geometry_msgs/Twist) - velocity commands
 - `/initialpose` (geometry_msgs/PoseWithCovarianceStamped) - (optional) current pose estimate of the robot with respect to the /map frame
 
 ### Parameters
@@ -20,7 +20,7 @@ Subscribes to incoming velocity commands, and updates odometry based on this. Al
 - `publish_rate` - rate of the simulations loop -- and thus the published topics. Default value: `10.0`
 - `velocity_topic` - topic for subscribed velocity commands. Default value: `/cmd_vel`
 - `odometry_topic` - topic for publishing odometry messages. Default value: `/odom`
-
+- `base_link_frame` - frame that is going to be used as the base_link of the robot. For example, base_footprint could be used. Default value: `base_link`
 
 ## laser_scanner_simulator_node
 Does raytracing on an available occupancy grid map, using [1]. Optionally includes the noise model from [2] and applies it on the ranges. Default laser parameters are those of a Sick S300 laser range scanner.
