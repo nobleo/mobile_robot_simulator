@@ -73,7 +73,7 @@ private:
     //Topics
     std::string velocity_topic;
     std::string odometry_topic;
-    std::string base_link_topic;
+    std::string base_link_frame;
 
     ros::Timer loop_timer; // timer for the update loop
 
