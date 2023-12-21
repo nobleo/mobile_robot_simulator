@@ -1,5 +1,4 @@
 #include "rclcpp/rclcpp.hpp"
-#include "ros/console.h"
 
 #include <nav_msgs/msg/occupancy_grid.hpp>
 #include <nav_msgs/srv/get_map.hpp>

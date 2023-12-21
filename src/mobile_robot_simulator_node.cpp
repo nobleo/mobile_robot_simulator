@@ -4,25 +4,16 @@
 
 int main(int argc, char **argv)
 {
-    ros::init(argc,argv, "mobile_robot_simulator");
-    rclcpp::Node nh("~");
-    rclcpp::Duration(0.1).sleep();
+    rclcpp::init(argc, argv);
+    auto nh = std::make_shared<rclcpp::Node>("mobile_robot_simulator");
     
-    MobileRobotSimulator mob_sim(&nh);
-    ros::AsyncSpinner spinner(1);
+    MobileRobotSimulator mob_sim(nh);
     
-    RCLCPP_INFO(rclcpp::get_logger("MobileRobotSimulator"), "--- Starting MobileRobot simulator");
-    
-    rclcpp::Duration(0.1).sleep();
-     
+    RCLCPP_INFO(nh->get_logger(), "--- Starting MobileRobot simulator");
+         
     mob_sim.start();
     
-    spinner.start();
-    while (nh.ok()) {
-        //rclcpp::spin_some(node);
-        rclcpp::Duration(0.01).sleep();
-    }
-    spinner.stop();
+    rclcpp::spin(nh);
     
     mob_sim.stop();
     
