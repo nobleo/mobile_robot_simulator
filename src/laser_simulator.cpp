@@ -1,16 +1,16 @@
-#include "ros/ros.h"
+#include "rclcpp/rclcpp.hpp"
 
 #include "mobile_robot_simulator/laser_simulator.h"
 
-LaserScannerSimulator::LaserScannerSimulator(ros::NodeHandle *nh)
+LaserScannerSimulator::LaserScannerSimulator(rclcpp::Node *nh)
 {
     nh_ptr = nh;
     // get parameters
     get_params();
-    laser_pub = nh_ptr->advertise<sensor_msgs::LaserScan>(l_scan_topic,10); // scan publisher
+    laser_pub = nh_ptr->advertise<sensor_msgs::msg::LaserScan>(l_scan_topic,10); // scan publisher
     // get map
     get_map();
-    ROS_INFO("Initialized laser scanner simulator");
+    RCLCPP_INFO(rclcpp::get_logger("MobileRobotSimulator"), "Initialized laser scanner simulator");
 }
 
 LaserScannerSimulator::~LaserScannerSimulator()
@@ -43,20 +43,20 @@ void LaserScannerSimulator::get_params()
 
 void LaserScannerSimulator::start()
 {
-    loop_timer = nh_ptr->createTimer(ros::Duration(1.0/l_frequency),&LaserScannerSimulator::update_loop, this);
+    loop_timer = nh_ptr->createTimer(rclcpp::Duration(1.0/l_frequency),&LaserScannerSimulator::update_loop, this);
     loop_timer.start(); // should not be necessary
     is_running = true;
-    ROS_INFO("Started laser scanner simulator update loop");
+    RCLCPP_INFO(rclcpp::get_logger("MobileRobotSimulator"), "Started laser scanner simulator update loop");
 }
 
 void LaserScannerSimulator::stop()
 {
     loop_timer.stop();
     is_running = false;
-    ROS_INFO("Stopped laser scanner simulator");
+    RCLCPP_INFO(rclcpp::get_logger("MobileRobotSimulator"), "Stopped laser scanner simulator");
 }
 
-void LaserScannerSimulator::update_loop(const ros::TimerEvent& event)
+void LaserScannerSimulator::update_loop(const rclcpp::TimerEvent& event)
 {
     // If we don't have a map, try to get one
     if (!have_map) get_map();
@@ -71,8 +71,8 @@ void LaserScannerSimulator::update_loop(const ros::TimerEvent& event)
 
 void LaserScannerSimulator::get_map()
 {
-    nav_msgs::GetMapRequest req;
-    nav_msgs::GetMapResponse resp;
+    nav_msgs::srv::GetMapRequest req;
+    nav_msgs::srv::GetMapResponse resp;
     if (ros::service::call(map_service, req, resp))
     {
         map = resp.map;
@@ -94,33 +94,33 @@ void LaserScannerSimulator::set_laser_params(std::string frame_id, double fov, u
     l_max_range = max_range;
     l_min_range = min_range;
     l_frequency = update_frequency;
-    ROS_INFO("Updated parameters of simulated laser");
+    RCLCPP_INFO(rclcpp::get_logger("MobileRobotSimulator"), "Updated parameters of simulated laser");
 }
 
 void LaserScannerSimulator::get_laser_pose(double * x, double * y, double * theta)
 {
-    ros::Time now = ros::Time::now();
-    tf::StampedTransform transf;
+    rclcpp::Time now = rclcpp::Time::now();
+    tf2::StampedTransform transf;
     try
     {
-        tl.waitForTransform("/map",l_frame,now,ros::Duration(1.0));
+        tl.waitForTransform("/map",l_frame,now,rclcpp::Duration(1.0));
         tl.lookupTransform("/map",l_frame,now,transf);
     }
     catch (tf::TransformException ex)
     {
-        ROS_ERROR("%s",ex.what());
+        RCLCPP_ERROR(rclcpp::get_logger("MobileRobotSimulator"), "%s",ex.what());
         *x = 0.0; *y = 0.0, *theta * 0.0;
         return;
     }
     *x = transf.getOrigin().getX();
     *y = transf.getOrigin().getY();
-    *theta = tf::getYaw(transf.getRotation());
+    *theta = tf2::getYaw(transf.getRotation());
 }
 
 void LaserScannerSimulator::update_scan(double x, double y, double theta)
 {
     //timing
-    //ros::Time start = ros::Time::now();
+    //rclcpp::Time start = rclcpp::Time::now();
     // laser params
     output_scan.angle_min = -l_fov/2.0;
     output_scan.angle_max = l_fov/2.0;
@@ -135,7 +135,7 @@ void LaserScannerSimulator::update_scan(double x, double y, double theta)
     double this_ang;
     // header
     output_scan.header.frame_id = l_frame;
-    output_scan.header.stamp = ros::Time::now();
+    output_scan.header.stamp = rclcpp::Time::now();
 
     for (unsigned int i=0; i<=l_beams; i++)
     {
@@ -150,7 +150,7 @@ void LaserScannerSimulator::update_scan(double x, double y, double theta)
         ranges.push_back(this_range);
     }
     output_scan.ranges = ranges;
-    //ROS_INFO_STREAM_THROTTLE(2, "Simulated scan in " << (ros::Time::now()-start).toSec() << "s");
+    //ROS_INFO_STREAM_THROTTLE(2, "Simulated scan in " << (rclcpp::Time::now()-start).toSec() << "s");
 }
 
 double LaserScannerSimulator::find_map_range(double x, double y, double theta)

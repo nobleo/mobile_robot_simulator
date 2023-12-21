@@ -1,20 +1,20 @@
-#include "ros/ros.h"
+#include "rclcpp/rclcpp.hpp"
 
 #include "mobile_robot_simulator/mobile_robot_simulator.h"
 
-MobileRobotSimulator::MobileRobotSimulator(ros::NodeHandle *nh)
+MobileRobotSimulator::MobileRobotSimulator(rclcpp::Node *nh)
 {
     nh_ptr = nh;
     // get parameters
     get_params();
-    odom_pub = nh_ptr->advertise<nav_msgs::Odometry>(odometry_topic,50); // odometry publisher
+    odom_pub = nh_ptr->advertise<nav_msgs::msg::Odometry>(odometry_topic,50); // odometry publisher
     vel_sub = nh_ptr->subscribe(velocity_topic,5,&MobileRobotSimulator::vel_callback,this); // velocity subscriber
 
     // initialize timers
-    last_update = ros::Time::now();
-    last_vel = last_update - ros::Duration(0.1);
+    last_update = rclcpp::Time::now();
+    last_vel = last_update - rclcpp::Duration(0.1);
     // initialize forst odom message
-    update_odom_from_vel(geometry_msgs::Twist(), ros::Duration(0.1));
+    update_odom_from_vel(geometry_msgs::msg::Twist(), rclcpp::Duration(0.1));
     odom.header.stamp = last_update;
     get_tf_from_odom(odom);
     // Initialize tf from map to odom
@@ -27,7 +27,7 @@ MobileRobotSimulator::MobileRobotSimulator(ros::NodeHandle *nh)
         map_trans.setIdentity();
     }
 
-    ROS_INFO("Initialized mobile robot simulator");
+    RCLCPP_INFO(rclcpp::get_logger("MobileRobotSimulator"), "Initialized mobile robot simulator");
 
 }
 
@@ -48,20 +48,20 @@ void MobileRobotSimulator::get_params()
 
 void MobileRobotSimulator::start()
 {
-    loop_timer = nh_ptr->createTimer(ros::Duration(1.0/publish_rate),&MobileRobotSimulator::update_loop, this);
+    loop_timer = nh_ptr->createTimer(rclcpp::Duration(1.0/publish_rate),&MobileRobotSimulator::update_loop, this);
     loop_timer.start(); // should not be necessary
     is_running = true;
-    ROS_INFO("Started mobile robot simulator update loop, listening on cmd_vel topic");
+    RCLCPP_INFO(rclcpp::get_logger("MobileRobotSimulator"), "Started mobile robot simulator update loop, listening on cmd_vel topic");
 }
 
 void MobileRobotSimulator::stop()
 {
     loop_timer.stop();
     is_running = false;
-    ROS_INFO("Stopped mobile robot simulator");
+    RCLCPP_INFO(rclcpp::get_logger("MobileRobotSimulator"), "Stopped mobile robot simulator");
 }
 
-void MobileRobotSimulator::update_loop(const ros::TimerEvent& event)
+void MobileRobotSimulator::update_loop(const rclcpp::TimerEvent& event)
 {
     last_update = event.current_real;
     // If we didn't receive a message, send the old odometry info with a new timestamp
@@ -81,7 +81,7 @@ void MobileRobotSimulator::update_loop(const ros::TimerEvent& event)
     tf_broadcaster.sendTransform(map_trans); // map -> odom
 }
 
-void MobileRobotSimulator::update_odom_from_vel(geometry_msgs::Twist vel, ros::Duration time_diff)
+void MobileRobotSimulator::update_odom_from_vel(geometry_msgs::msg::Twist vel, rclcpp::Duration time_diff)
 {
     ROS_DEBUG_STREAM("Velocity - x: " << vel.linear.x << " y: " << vel.linear.y << " th: " << vel.angular.z);
     //compute odometry in a typical way given the velocities of the robot
@@ -104,9 +104,9 @@ void MobileRobotSimulator::update_odom_from_vel(geometry_msgs::Twist vel, ros::D
     ROS_DEBUG_STREAM("Odometry - x: " << odom.pose.pose.position.x << " y: " << odom.pose.pose.position.y << " th: " << th);
 }
 
-void MobileRobotSimulator::get_tf_from_odom(nav_msgs::Odometry odom)
+void MobileRobotSimulator::get_tf_from_odom(nav_msgs::msg::Odometry odom)
 {
-    geometry_msgs::TransformStamped odom_tmp;
+    geometry_msgs::msg::TransformStamped odom_tmp;
     // copy from odmoetry message
     odom_tmp.header = odom.header;
     odom_tmp.child_frame_id = odom.child_frame_id;
@@ -118,35 +118,35 @@ void MobileRobotSimulator::get_tf_from_odom(nav_msgs::Odometry odom)
     tf::transformStampedMsgToTF(odom_tmp, odom_trans);
 }
 
-void MobileRobotSimulator::vel_callback(const geometry_msgs::Twist::ConstPtr& msg)
+void MobileRobotSimulator::vel_callback(const geometry_msgs::msg::Twist::ConstSharedPtr& msg)
 {
-    ROS_DEBUG("Received message on cmd_vel");
-    measure_time = ros::Time::now();
-    ros::Duration dt = measure_time - last_vel;
+    RCLCPP_DEBUG(rclcpp::get_logger("MobileRobotSimulator"), "Received message on cmd_vel");
+    measure_time = rclcpp::Time::now();
+    rclcpp::Duration dt = measure_time - last_vel;
     last_vel = measure_time;
-    if (dt >= ros::Duration(0.5)) dt = ros::Duration(0.1);
+    if (dt >= rclcpp::Duration(0.5)) dt = rclcpp::Duration(0.1);
     message_received = true;
-    geometry_msgs::Twist vel = *msg;
+    geometry_msgs::msg::Twist vel = *msg;
     update_odom_from_vel(vel,dt);
 }
 
-void MobileRobotSimulator::init_pose_callback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& msg)
+void MobileRobotSimulator::init_pose_callback(const geometry_msgs::msg::PoseWithCovarianceStamped::ConstSharedPtr& msg)
 {
     if (msg->header.frame_id != "map") {
-        ROS_ERROR("Initial pose not specified in map frame, ignoring");
+        RCLCPP_ERROR(rclcpp::get_logger("MobileRobotSimulator"), "Initial pose not specified in map frame, ignoring");
         return;
     }
-    ROS_INFO("Received pose estimate of mobile base");
+    RCLCPP_INFO(rclcpp::get_logger("MobileRobotSimulator"), "Received pose estimate of mobile base");
 
     // msg is map -> base_link_frame
-    tf::StampedTransform msg_t;
+    tf2::StampedTransform msg_t;
     msg_t.setOrigin(tf::Vector3(msg->pose.pose.position.x,msg->pose.pose.position.y,msg->pose.pose.position.z));
     msg_t.setRotation(tf::Quaternion(msg->pose.pose.orientation.x,msg->pose.pose.orientation.y,msg->pose.pose.orientation.z,msg->pose.pose.orientation.w));
     ROS_DEBUG_STREAM("map -> base_link_frame - x: " << msg_t.getOrigin().getX() << " y: " << msg_t.getOrigin().getY());
     // get odom -> base_link_frame
     ROS_DEBUG_STREAM("odom -> base_link_frame - x: " << odom_trans.getOrigin().getX() << " y: " << odom_trans.getOrigin().getY());
     // calculate map -> odom and save as stamped
-    tf::StampedTransform map_t = tf::StampedTransform(msg_t * odom_trans.inverse(), msg->header.stamp, "map", "odom");
+    tf2::StampedTransform map_t = tf2::StampedTransform(msg_t * odom_trans.inverse(), msg->header.stamp, "map", "odom");
     ROS_DEBUG_STREAM("map -> odom - x: " << map_t.getOrigin().getX() << " y: " << map_t.getOrigin().getY());
     map_trans = map_t;
 }

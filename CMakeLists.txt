@@ -1,5 +1,11 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.5)
 project(mobile_robot_simulator)
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(sensor_msgs REQUIRED)
 
 # using c++11
 set(CMAKE_CXX_FLAGS "-std=c++11")
@@ -7,17 +13,9 @@ set(CMAKE_CXX_FLAGS "-std=c++11")
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS
-  roscpp
-  geometry_msgs
-  nav_msgs
-  tf
-  sensor_msgs
-)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
-
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -104,12 +102,6 @@ find_package(catkin REQUIRED COMPONENTS
 ## LIBRARIES: libraries you create in this project that dependent projects also need
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
-catkin_package(
-  INCLUDE_DIRS include
-#  LIBRARIES mobile_robot_simulator
-  CATKIN_DEPENDS geometry_msgs nav_msgs roscpp tf sensor_msgs
-#  DEPENDS system_lib
-)
 
 ###########
 ## Build ##
@@ -119,43 +111,39 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(include)
 include_directories(
-  ${catkin_INCLUDE_DIRS}
+  
 )
 
 ## Declare a C++ library
  add_library(mobile_robot_simulator
    src/mobile_robot_simulator.cpp
  )
+
+## Add cmake target dependencies of the executable
+## same as for the library above
+
+## Specify libraries to link a library or executable target against
+ament_target_dependencies(mobile_robot_simulator "nav_msgs" "tf2_ros" "sensor_msgs" "geometry_msgs")
  add_library(laser_simulator
    src/laser_simulator.cpp
  )
+ament_target_dependencies(laser_simulator "nav_msgs" "tf2_ros" "sensor_msgs" "geometry_msgs")
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
-add_dependencies(mobile_robot_simulator ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-add_dependencies(laser_simulator ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
 add_executable(mobile_robot_simulator_node src/mobile_robot_simulator_node.cpp)
+
+ament_target_dependencies(mobile_robot_simulator_node mobile_robot_simulator laser_simulator "nav_msgs" "tf2_ros" "sensor_msgs" "geometry_msgs"
+)
 add_executable(laser_scanner_simulator_node src/laser_simulator_node.cpp)
-
-## Add cmake target dependencies of the executable
-## same as for the library above
-add_dependencies(mobile_robot_simulator_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-add_dependencies(laser_scanner_simulator_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-
-## Specify libraries to link a library or executable target against
-target_link_libraries(mobile_robot_simulator ${catkin_LIBRARIES})
-target_link_libraries(laser_simulator ${catkin_LIBRARIES})
-
-
-target_link_libraries(mobile_robot_simulator_node
-  ${catkin_LIBRARIES} mobile_robot_simulator laser_simulator
+ament_target_dependencies(laser_scanner_simulator_node laser_simulator mobile_robot_simulator "nav_msgs" "tf2_ros" "sensor_msgs" "geometry_msgs"
 )
-target_link_libraries(laser_scanner_simulator_node
-  ${catkin_LIBRARIES} laser_simulator mobile_robot_simulator
-)
+ament_export_include_directories(include)
+ament_export_dependencies(geometry_msgs nav_msgs rclcpp tf2_ros sensor_msgs)
+ament_package()
 
 #############
 ## Install ##
@@ -173,13 +161,12 @@ target_link_libraries(laser_scanner_simulator_node
 
 ## Mark executables and/or libraries for installation
 install(TARGETS mobile_robot_simulator laser_simulator
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION lib
 )
 
 install(TARGETS mobile_robot_simulator_node laser_scanner_simulator_node
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+  RUNTIME DESTINATION lib/${PROJECT_NAME}
 )
-
 
 ## Mark cpp header files for installation
 # install(DIRECTORY include/${PROJECT_NAME}/

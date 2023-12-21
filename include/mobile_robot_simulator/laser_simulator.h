@@ -1,12 +1,13 @@
-#include "ros/ros.h"
+#include "rclcpp/rclcpp.hpp"
 #include "ros/console.h"
 
-#include "nav_msgs/OccupancyGrid.h"
-#include "nav_msgs/GetMap.h"
-#include "sensor_msgs/LaserScan.h"
+#include <nav_msgs/msg/occupancy_grid.hpp>
+#include <nav_msgs/srv/get_map.hpp>
+#include <sensor_msgs/msg/laser_scan.hpp>
 
 #include "tf/transform_datatypes.h"
-#include <tf/transform_listener.h>
+#include "tf2_ros/buffer.h"
+#include "tf2_ros/transform_listener.h"
 
 #include <math.h>
 #include <random>
@@ -18,7 +19,7 @@ class LaserScannerSimulator {
     
 public:
 
-    LaserScannerSimulator(ros::NodeHandle *nh);
+    LaserScannerSimulator(rclcpp::Node *nh);
     ~LaserScannerSimulator();
     
     /*! updates the laser scanner parameters */
@@ -36,7 +37,7 @@ public:
 
 private:
 
-    void update_loop(const ros::TimerEvent& event);
+    void update_loop(const rclcpp::TimerEvent& event);
     
     /*! gets the current map */
     void get_map();
@@ -66,16 +67,16 @@ private:
     int get_map_occupancy(int x, int y);
     
     
-    ros::NodeHandle * nh_ptr;
+    rclcpp::Node * nh_ptr;
     ros::Publisher laser_pub; // scan publisher
-    tf::TransformListener tl; 
+    tf2_ros::TransformListener tl; 
     
-    ros::Timer loop_timer; // timer for the update loop
+    rclcpp::Timer loop_timer; // timer for the update loop
     bool is_running;
     
     // map 
     std::string map_service;
-    nav_msgs::OccupancyGrid map; //map data
+    nav_msgs::msg::OccupancyGrid map; //map data
     bool have_map;
     
     std::string l_scan_topic;
@@ -87,7 +88,7 @@ private:
     double l_max_range; // max range of the laser scan
     double l_min_range; // min range of the laser scan
     double l_frequency; // frequency of laser scans
-    tf::StampedTransform rob_laser_tf; // transform from robot to laser (assumed static)
+    tf2::StampedTransform rob_laser_tf; // transform from robot to laser (assumed static)
     
     // noise model parameters (see Probabilistic Robotics eq. 6.12)
     bool use_noise_model;
@@ -102,7 +103,7 @@ private:
     std::uniform_real_distribution<double> p_rand; // random, "phantom" readings
     
     // output
-    sensor_msgs::LaserScan output_scan;
+    sensor_msgs::msg::LaserScan output_scan;
 
 }; // end class
 
