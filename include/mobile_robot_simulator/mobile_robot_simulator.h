@@ -58,6 +58,9 @@ private:
     tf2::Stamped<tf2::Transform> odom_trans; // odometry transform
     geometry_msgs::msg::TransformStamped map_trans; // transformation from odom to map
 
+    // Clock
+    rclcpp::Clock steady_clock_{RCL_STEADY_TIME};
+
     rclcpp::Time last_vel; // last incoming velocity command
     rclcpp::Time last_update; // last time the odom was published
     rclcpp::Time measure_time; // this incoming velocity command

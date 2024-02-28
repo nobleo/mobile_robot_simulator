@@ -12,11 +12,11 @@ MobileRobotSimulator::MobileRobotSimulator(const rclcpp::Node::SharedPtr& nh) :
     nh_ptr = nh;
     // get parameters
     get_params();
-    odom_pub = nh_ptr->create_publisher<nav_msgs::msg::Odometry>("odom",50); // odometry publisher
-    vel_sub = nh_ptr->create_subscription<geometry_msgs::msg::Twist>("cmd_vel",5,[this](geometry_msgs::msg::Twist::ConstSharedPtr msg){vel_callback(msg);}); // velocity subscriber
+    odom_pub = nh_ptr->create_publisher<nav_msgs::msg::Odometry>("/odom",50); // odometry publisher
+    vel_sub = nh_ptr->create_subscription<geometry_msgs::msg::Twist>("/cmd_vel",5,[this](geometry_msgs::msg::Twist::ConstSharedPtr msg){vel_callback(msg);}); // velocity subscriber
 
     // initialize timers
-    last_update = clock_->now();
+    last_update = steady_clock_.now();
     last_vel = last_update - rclcpp::Duration::from_seconds(0.1);
     // initialize forst odom message
     update_odom_from_vel(geometry_msgs::msg::Twist(), rclcpp::Duration::from_seconds(0.1));
@@ -51,7 +51,7 @@ void MobileRobotSimulator::get_params()
 
 void MobileRobotSimulator::start()
 {
-    loop_timer = nh_ptr->create_timer(std::chrono::duration<double>(1.0/publish_rate),[this](){update_loop();});
+    loop_timer = nh_ptr->create_wall_timer(std::chrono::duration<double>(1.0/publish_rate), std::bind(&MobileRobotSimulator::update_loop, this));
     is_running = true;
     RCLCPP_INFO(logger_, "Started mobile robot simulator update loop, listening on cmd_vel topic");
 }
@@ -65,7 +65,9 @@ void MobileRobotSimulator::stop()
 
 void MobileRobotSimulator::update_loop()
 {
-    last_update = clock_->now();
+    // RCLCPP_INFO(logger_, "MobileRobotSimulator::update_loop");
+
+    last_update = steady_clock_.now();
     // If we didn't receive a message, send the old odometry info with a new timestamp
     if (!message_received)
     {
@@ -127,12 +129,14 @@ void MobileRobotSimulator::get_tf_from_odom(nav_msgs::msg::Odometry odom)
 void MobileRobotSimulator::vel_callback(const geometry_msgs::msg::Twist::ConstSharedPtr& msg)
 {
     RCLCPP_DEBUG(logger_, "Received message on cmd_vel");
-    measure_time = clock_->now();
+    measure_time = steady_clock_.now();
     rclcpp::Duration dt = measure_time - last_vel;
     last_vel = measure_time;
     if (dt >= rclcpp::Duration::from_seconds(0.5)) dt = rclcpp::Duration::from_seconds(0.1);
     message_received = true;
     geometry_msgs::msg::Twist vel = *msg;
+
+    RCLCPP_INFO(logger_, "Received cmd_vel(%.3f, %.3f, %.3f), dt: %f", vel.linear.x, vel.linear.y, vel.angular.z, dt.seconds());
     update_odom_from_vel(vel,dt);
 }
 
