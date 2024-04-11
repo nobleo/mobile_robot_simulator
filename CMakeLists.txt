@@ -30,38 +30,22 @@ ament_target_dependencies(mobile_robot_simulator
   geometry_msgs
 )
 
-#add_library(laser_simulator
-#  src/laser_simulator.cpp
-#)
-#ament_target_dependencies(laser_simulator
-#  nav_msgs
-#  tf2_ros
-#  sensor_msgs
-#  geometry_msgs
-#)
-
-add_executable(mobile_robot_simulator_node src/mobile_robot_simulator_node.cpp)
-target_link_libraries(mobile_robot_simulator_node
-  mobile_robot_simulator 
+add_library(laser_simulator
+  src/laser_simulator.cpp
 )
-ament_target_dependencies(mobile_robot_simulator_node
+ament_target_dependencies(laser_simulator
   nav_msgs
   tf2_ros
+  tf2_geometry_msgs
   sensor_msgs
   geometry_msgs
 )
 
-#add_executable(laser_scanner_simulator_node src/laser_simulator_node.cpp)
-#target_link_libraries(laser_scanner_simulator_node
-#  laser_simulator
-#  mobile_robot_simulator
-#)
-#ament_target_dependencies(laser_scanner_simulator_node
-#  nav_msgs
-#  tf2_ros
-#  sensor_msgs
-#  geometry_msgs
-#)
+add_executable(mobile_robot_simulator_node src/mobile_robot_simulator_node.cpp)
+target_link_libraries(mobile_robot_simulator_node mobile_robot_simulator)
+
+add_executable(laser_scanner_simulator_node src/laser_simulator_node.cpp)
+target_link_libraries(laser_scanner_simulator_node laser_simulator)
 
 ament_export_include_directories(include)
 ament_export_dependencies(geometry_msgs nav_msgs rclcpp tf2_ros sensor_msgs)
@@ -72,13 +56,13 @@ ament_package()
 #############
 
 install(
-  TARGETS mobile_robot_simulator
+  TARGETS mobile_robot_simulator laser_simulator
   EXPORT export_${PROJECT_NAME}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
 )
 
-install(TARGETS mobile_robot_simulator_node
+install(TARGETS mobile_robot_simulator_node laser_scanner_simulator_node
   DESTINATION lib/${PROJECT_NAME}
 )

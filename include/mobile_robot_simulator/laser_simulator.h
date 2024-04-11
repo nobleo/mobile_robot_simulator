@@ -4,7 +4,6 @@
 #include <nav_msgs/srv/get_map.hpp>
 #include <sensor_msgs/msg/laser_scan.hpp>
 
-#include "tf/transform_datatypes.h"
 #include "tf2_ros/buffer.h"
 #include "tf2_ros/transform_listener.h"
 
@@ -18,7 +17,7 @@ class LaserScannerSimulator {
     
 public:
 
-    LaserScannerSimulator(rclcpp::Node *nh);
+    LaserScannerSimulator(rclcpp::Node::SharedPtr nh);
     ~LaserScannerSimulator();
     
     /*! updates the laser scanner parameters */
@@ -36,7 +35,7 @@ public:
 
 private:
 
-    void update_loop(const rclcpp::TimerEvent& event);
+    void update_loop();
     
     /*! gets the current map */
     void get_map();
@@ -65,12 +64,15 @@ private:
     /*! get occupancy of specified cell */
     int get_map_occupancy(int x, int y);
     
-    
-    rclcpp::Node * nh_ptr;
-    ros::Publisher laser_pub; // scan publisher
+    rclcpp::Logger logger_;
+    rclcpp::Clock::SharedPtr clock_;
+    rclcpp::Node::SharedPtr nh_ptr;
+    rclcpp::Publisher<sensor_msgs::msg::LaserScan>::SharedPtr laser_pub; // scan publisher
+    rclcpp::Client<nav_msgs::srv::GetMap>::SharedPtr map_service_;
+    tf2_ros::Buffer buffer_;
     tf2_ros::TransformListener tl; 
     
-    rclcpp::Timer loop_timer; // timer for the update loop
+    rclcpp::TimerBase::SharedPtr loop_timer; // timer for the update loop
     bool is_running;
     
     // map 
@@ -87,7 +89,7 @@ private:
     double l_max_range; // max range of the laser scan
     double l_min_range; // min range of the laser scan
     double l_frequency; // frequency of laser scans
-    tf2::StampedTransform rob_laser_tf; // transform from robot to laser (assumed static)
+    tf2::Stamped<tf2::Transform> rob_laser_tf; // transform from robot to laser (assumed static)
     
     // noise model parameters (see Probabilistic Robotics eq. 6.12)
     bool use_noise_model;

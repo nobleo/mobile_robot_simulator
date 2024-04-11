@@ -1,16 +1,19 @@
 #include "rclcpp/rclcpp.hpp"
-
+#include "tf2/utils.h"
+#include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 #include "mobile_robot_simulator/laser_simulator.h"
 
-LaserScannerSimulator::LaserScannerSimulator(rclcpp::Node *nh)
+LaserScannerSimulator::LaserScannerSimulator(rclcpp::Node::SharedPtr nh)
+  : logger_(nh->get_logger()), clock_(nh->get_clock()), buffer_(clock_), tl(buffer_)
 {
     nh_ptr = nh;
     // get parameters
     get_params();
-    laser_pub = nh_ptr->advertise<sensor_msgs::msg::LaserScan>(l_scan_topic,10); // scan publisher
+    laser_pub = nh_ptr->create_publisher<sensor_msgs::msg::LaserScan>("scan",10); // scan publisher
+    map_service_ = nh_ptr->create_client<nav_msgs::srv::GetMap>("map_server/map");
     // get map
     get_map();
-    RCLCPP_INFO(rclcpp::get_logger("MobileRobotSimulator"), "Initialized laser scanner simulator");
+    RCLCPP_INFO(logger_, "Initialized laser scanner simulator");
 }
 
 LaserScannerSimulator::~LaserScannerSimulator()
@@ -20,43 +23,41 @@ LaserScannerSimulator::~LaserScannerSimulator()
 
 void LaserScannerSimulator::get_params()
 {
-    nh_ptr->param<std::string>("laser_topic", l_scan_topic, "scan");
-    nh_ptr->param<std::string>("map_service", map_service, "static_map");
-    //laser parameters - defaults are appriximately that of a Sick S300 
-    nh_ptr->param<std::string>("laser_frame_id", l_frame, "base_link");
-    nh_ptr->param<double>("laser_fov", l_fov, 1.5*M_PI);
-    nh_ptr->param<int>("laser_beam_count", l_beams, 541);
-    nh_ptr->param<double>("laser_max_range", l_max_range, 30.0);
-    nh_ptr->param<double>("laser_min_range", l_min_range, 0.05);
-    nh_ptr->param<double>("laser_frequency", l_frequency, 10.0);
+    //laser parameters - defaults are appriximately that of a Sick S300
+    l_frame = nh_ptr->declare_parameter("laser_frame_id", "base_link");
+    l_fov = nh_ptr->declare_parameter("laser_fov", 1.5*M_PI);
+    l_beams = nh_ptr->declare_parameter("laser_beam_count", 541);
+    l_max_range = nh_ptr->declare_parameter("laser_max_range", 30.0);
+    l_min_range = nh_ptr->declare_parameter("laser_min_range", 0.05);
+    l_frequency = nh_ptr->declare_parameter("laser_frequency", 10.0);
     // noise model parameters (see Probabilistic Robotics eq. 6.12)
-    nh_ptr->param<bool>("apply_noise", use_noise_model, true);
-    nh_ptr->param<double>("sigma_hit", sigma_hit, 0.005);
-    nh_ptr->param<double>("lambda_short", lambda_short, 2.0);
-    nh_ptr->param<double>("z_hit", z_mix[0], 0.995);
-    nh_ptr->param<double>("z_short", z_mix[1], 0.0);
-    nh_ptr->param<double>("z_max", z_mix[2], 0.005);
-    nh_ptr->param<double>("z_rand", z_mix[3], 0.0);
+    use_noise_model = nh_ptr->declare_parameter("apply_noise", true);
+    sigma_hit = nh_ptr->declare_parameter("sigma_hit", 0.005);
+    lambda_short = nh_ptr->declare_parameter("lambda_short", 2.0);
+    z_mix[0] = nh_ptr->declare_parameter("z_hit", 0.995);
+    z_mix[1] = nh_ptr->declare_parameter("z_short", 0.0);
+    z_mix[2] = nh_ptr->declare_parameter("z_max", 0.005);
+    z_mix[3] = nh_ptr->declare_parameter("z_rand", 0.0);
     // update the noise model internally
     set_noise_params(use_noise_model, sigma_hit, lambda_short, z_mix[0], z_mix[1], z_mix[2], z_mix[3]);
 }
 
 void LaserScannerSimulator::start()
 {
-    loop_timer = nh_ptr->createTimer(rclcpp::Duration(1.0/l_frequency),&LaserScannerSimulator::update_loop, this);
-    loop_timer.start(); // should not be necessary
+    using std::chrono_literals::operator""s;
+    loop_timer = nh_ptr->create_timer(1.0s/l_frequency, std::bind(&LaserScannerSimulator::update_loop, this));
     is_running = true;
-    RCLCPP_INFO(rclcpp::get_logger("MobileRobotSimulator"), "Started laser scanner simulator update loop");
+    RCLCPP_INFO(logger_, "Started laser scanner simulator update loop");
 }
 
 void LaserScannerSimulator::stop()
 {
-    loop_timer.stop();
+    loop_timer->cancel();
     is_running = false;
-    RCLCPP_INFO(rclcpp::get_logger("MobileRobotSimulator"), "Stopped laser scanner simulator");
+    RCLCPP_INFO(logger_, "Stopped laser scanner simulator");
 }
 
-void LaserScannerSimulator::update_loop(const rclcpp::TimerEvent& event)
+void LaserScannerSimulator::update_loop()
 {
     // If we don't have a map, try to get one
     if (!have_map) get_map();
@@ -65,25 +66,27 @@ void LaserScannerSimulator::update_loop(const rclcpp::TimerEvent& event)
     get_laser_pose(&l_x,&l_y,&l_theta);
     //ROS_INFO_STREAM_THROTTLE(2,"x: " << l_x << " y: " << l_y << " theta: " <<  l_theta);
     update_scan(l_x,l_y,l_theta);
-    output_scan.header.stamp = event.current_real;
-    laser_pub.publish(output_scan);
+    output_scan.header.stamp = clock_->now();
+    laser_pub->publish(output_scan);
 }
 
 void LaserScannerSimulator::get_map()
 {
-    nav_msgs::srv::GetMapRequest req;
-    nav_msgs::srv::GetMapResponse resp;
-    if (ros::service::call(map_service, req, resp))
-    {
-        map = resp.map;
-        ROS_INFO_STREAM("Got a " << map.info.width << "x" << map.info.height << " map with resolution " << map.info.resolution);
-        have_map = true;
-    }
-    else 
-    {
-        ROS_WARN_THROTTLE(10,"No map received - service '/static_map' not available (will publish only max_range)");
-        have_map = false;
-    }
+    RCLCPP_INFO(logger_, "Requesting the map");
+    auto req = std::make_shared<nav_msgs::srv::GetMap::Request>();
+    nav_msgs::srv::GetMap::Response resp;
+    auto cb = [this](rclcpp::Client<nav_msgs::srv::GetMap>::SharedFuture future){
+      assert(future.valid());
+      auto result = future.get();
+      map = result->map;
+      RCLCPP_INFO_STREAM(logger_, "Got a " << map.info.width << "x" << map.info.height << " map with resolution " << map.info.resolution);
+      have_map = true;
+    };
+    auto future = map_service_->async_send_request(req, cb);
+
+    // TODO(Ramon): How to log a service error?
+    // RCLCPP_WARN_THROTTLE(logger_, *clock_, 10000, "No map received - service '/static_map' not available (will publish only max_range)");
+    // have_map = false;
 }
 
 void LaserScannerSimulator::set_laser_params(std::string frame_id, double fov, unsigned int beam_count, double max_range, double min_range, double update_frequency)
@@ -94,21 +97,21 @@ void LaserScannerSimulator::set_laser_params(std::string frame_id, double fov, u
     l_max_range = max_range;
     l_min_range = min_range;
     l_frequency = update_frequency;
-    RCLCPP_INFO(rclcpp::get_logger("MobileRobotSimulator"), "Updated parameters of simulated laser");
+    RCLCPP_INFO(logger_, "Updated parameters of simulated laser");
 }
 
 void LaserScannerSimulator::get_laser_pose(double * x, double * y, double * theta)
 {
-    rclcpp::Time now = rclcpp::Time::now();
-    tf2::StampedTransform transf;
+    rclcpp::Time now = clock_->now();
+    tf2::Stamped<tf2::Transform> transf;
     try
     {
-        tl.waitForTransform("/map",l_frame,now,rclcpp::Duration(1.0));
-        tl.lookupTransform("/map",l_frame,now,transf);
+        auto tf = buffer_.lookupTransform("map", l_frame, now, rclcpp::Duration::from_seconds(1));
+        tf2::convert(tf, transf);
     }
-    catch (tf::TransformException ex)
+    catch (const tf2::TransformException& ex)
     {
-        RCLCPP_ERROR(rclcpp::get_logger("MobileRobotSimulator"), "%s",ex.what());
+        RCLCPP_ERROR(logger_, "%s",ex.what());
         *x = 0.0; *y = 0.0, *theta * 0.0;
         return;
     }
@@ -135,7 +138,7 @@ void LaserScannerSimulator::update_scan(double x, double y, double theta)
     double this_ang;
     // header
     output_scan.header.frame_id = l_frame;
-    output_scan.header.stamp = rclcpp::Time::now();
+    output_scan.header.stamp = clock_->now();
 
     for (unsigned int i=0; i<=l_beams; i++)
     {
@@ -287,12 +290,12 @@ void LaserScannerSimulator::set_noise_params(bool use_model, double sigma_hit_re
     double z_sum = z_mix[0]+z_mix[1]+z_mix[2]+z_mix[3];
     if (z_sum != 1)
     {
-        ROS_WARN_STREAM("Noise model weighting sums not normalized (sum is " << z_sum << "), normalizing them");
+        RCLCPP_WARN_STREAM(logger_, "Noise model weighting sums not normalized (sum is " << z_sum << "), normalizing them");
         z_mix[0] = z_mix[0]/z_sum;
         z_mix[1] = z_mix[1]/z_sum;
         z_mix[2] = z_mix[2]/z_sum;
         z_mix[3] = z_mix[3]/z_sum;
-        ROS_WARN_STREAM("After normalization - z_hit " << z_mix[0] << ", z_short " << z_mix[1] << ", z_max " << z_mix[2] << ", z_rand " << z_mix[3]);
+        RCLCPP_WARN_STREAM(logger_, "After normalization - z_hit " << z_mix[0] << ", z_short " << z_mix[1] << ", z_max " << z_mix[2] << ", z_rand " << z_mix[3]);
         
     }
     // reset distributions
