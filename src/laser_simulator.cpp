@@ -84,7 +84,8 @@ void LaserScannerSimulator::get_map()
     };
     auto future = map_service_->async_send_request(req, cb);
 
-    // TODO(Ramon): How to log a service error?
+    // TODO(Ramon): How can I know when the service failed?
+    // https://github.com/ros2/ros2/issues/921
     // RCLCPP_WARN_THROTTLE(logger_, *clock_, 10000, "No map received - service '/static_map' not available (will publish only max_range)");
     // have_map = false;
 }
