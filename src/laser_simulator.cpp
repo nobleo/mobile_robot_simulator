@@ -1,5 +1,5 @@
 #include "rclcpp/rclcpp.hpp"
-#include "tf2/utils.h"
+#include "tf2/utils.hpp"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 #include "mobile_robot_simulator/laser_simulator.h"
 
@@ -133,7 +133,7 @@ void LaserScannerSimulator::update_scan(double x, double y, double theta)
     output_scan.range_max = l_max_range+0.001;
     output_scan.time_increment = (1.0/l_frequency) / l_beams;
     output_scan.scan_time = (1.0/l_frequency);
-    
+
     std::vector<float> ranges;
     double this_range;
     double this_ang;
@@ -147,7 +147,7 @@ void LaserScannerSimulator::update_scan(double x, double y, double theta)
         {
             ranges.push_back((float)l_max_range);
             continue;
-        }        
+        }
         this_ang = theta + output_scan.angle_min + i*output_scan.angle_increment;
         this_range = find_map_range(x,y,this_ang);
         //ROS_INFO_STREAM_THROTTLE(1,"x: " << x << " y: " << y << " theta: " << this_ang);
@@ -160,7 +160,7 @@ void LaserScannerSimulator::update_scan(double x, double y, double theta)
 double LaserScannerSimulator::find_map_range(double x, double y, double theta)
 {
     // using "A Faster Voxel Traversal Algorithm for Ray Tracing" by Amanatides & Woo
-    // ======== initialization phase ======== 
+    // ======== initialization phase ========
     //ROS_INFO_STREAM_THROTTLE(1,"x,y,theta " << x << ", " << y << ", " << theta);
     double origin[2]; // u
     origin[0] = x;
@@ -186,29 +186,29 @@ double LaserScannerSimulator::find_map_range(double x, double y, double theta)
     current[0] = start_x;
     current[1] = start_y;
     //ROS_INFO_STREAM_THROTTLE(1,"current " << current[0] << ", " << current[1]);
-   
+
     int step[2]; // stepX, stepY
     double tMax[2]; // tMaxX, tMaxY
     double tDelta[2]; // tDeltaX, tDeltaY
-    
+
     double voxel_border[2];
     get_map2world_coordinates(current[0], current[1], &voxel_border[0], &voxel_border[1]);
     voxel_border[0] -= 0.5 * map.info.resolution; //this is the lower left voxel corner
     voxel_border[1] -= 0.5 * map.info.resolution; //this is the lower left voxel corner
     //ROS_INFO_STREAM_THROTTLE(1,"voxel_border " << voxel_border[0] << ", " << voxel_border[1]);
-    
+
     for (unsigned int i=0;i<2;i++) // for each dimension (x,y)
     {
         // determine step direction
         if (dir[i] > 0.0) step[i] = 1;
         else if (dir[i] < 0.0) step[i] = -1;
         else step[i] = 0;
-        
+
         // determine tMax, tDelta
-        if (step[i] != 0) 
+        if (step[i] != 0)
         {
             // corner point of voxel (in direction of ray)
-            if (step[i] == 1) 
+            if (step[i] == 1)
             {
                 voxel_border[i] += (float) (step[i] * map.info.resolution);
             }
@@ -216,22 +216,22 @@ double LaserScannerSimulator::find_map_range(double x, double y, double theta)
             tMax[i] = (voxel_border[i] - origin[i]) / dir[i];
             // tDelta - distance along ray so that veritcal/horizontal component equals one voxel
             tDelta[i] = map.info.resolution / fabs(dir[i]);
-        } 
-        else 
+        }
+        else
         {
             tMax[i] = std::numeric_limits<double>::max();
             tDelta[i] = std::numeric_limits<double>::max();
         }
-        
+
     }
     //ROS_INFO_STREAM_THROTTLE(1,"step " << step[0] << ", " << step[1]);
     //ROS_INFO_STREAM_THROTTLE(1,"tMax " << tMax[0] << ", " << tMax[1]);
     //ROS_INFO_STREAM_THROTTLE(1,"tDelta " << tDelta[0] << ", " << tDelta[1]);
-    
+
     //ROS_DEBUG_STREAM("Starting at index " << start_x << "," << start_y);
-    
-    // ======== incremental traversal ======== 
-    while (true) 
+
+    // ======== incremental traversal ========
+    while (true)
     {
         // advance
         unsigned int dim; // X or Y direction
@@ -250,7 +250,7 @@ double LaserScannerSimulator::find_map_range(double x, double y, double theta)
         double current_range = sqrt(pow((current[0] - start_x),2) + pow((current[1] - start_y),2)) * map.info.resolution;
         // are we at max range?
         if (current_range > l_max_range) return l_max_range;
-        else { 
+        else {
             int occ = get_map_occupancy(current[0],current[1]);
             if (occ >= 60) // current cell is occupied
             {
@@ -297,13 +297,13 @@ void LaserScannerSimulator::set_noise_params(bool use_model, double sigma_hit_re
         z_mix[2] = z_mix[2]/z_sum;
         z_mix[3] = z_mix[3]/z_sum;
         RCLCPP_WARN_STREAM(logger_, "After normalization - z_hit " << z_mix[0] << ", z_short " << z_mix[1] << ", z_max " << z_mix[2] << ", z_rand " << z_mix[3]);
-        
+
     }
     // reset distributions
     p_hit = std::normal_distribution<double>(0.0,sigma_hit);
     p_short = std::exponential_distribution<double>(lambda_short);
     p_rand = std::uniform_real_distribution<double>(0.0,l_max_range);
-    selector = std::uniform_real_distribution<double>(0.0,1.0);    
+    selector = std::uniform_real_distribution<double>(0.0,1.0);
 }
 
 void LaserScannerSimulator::get_world2map_coordinates(double world_x, double world_y, int * map_x, int * map_y)
@@ -325,4 +325,3 @@ int LaserScannerSimulator::get_map_occupancy(int x, int y)
     //ROS_DEBUG_STREAM("x: " << x << " y: " << y << " index: " <<  y*map.info.width + x);
     return map.data[y*map.info.width + x];
 }
-
