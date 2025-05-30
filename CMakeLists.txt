@@ -22,23 +22,25 @@ include_directories(include)
 add_library(mobile_robot_simulator
   src/mobile_robot_simulator.cpp
 )
-ament_target_dependencies(mobile_robot_simulator 
-  nav_msgs
-  tf2_ros
-  tf2_geometry_msgs
-  sensor_msgs
-  geometry_msgs
+target_link_libraries(mobile_robot_simulator PUBLIC
+  ${geometry_msgs_TARGETS}
+  ${nav_msgs_TARGETS}
+  ${sensor_msgs_TARGETS}
+  tf2_geometry_msgs::tf2_geometry_msgs
+  tf2_ros::static_transform_broadcaster_node
+  tf2_ros::tf2_ros
 )
 
 add_library(laser_simulator
   src/laser_simulator.cpp
 )
-ament_target_dependencies(laser_simulator
-  nav_msgs
-  tf2_ros
-  tf2_geometry_msgs
-  sensor_msgs
-  geometry_msgs
+target_link_libraries(laser_simulator PUBLIC
+  ${geometry_msgs_TARGETS}
+  ${nav_msgs_TARGETS}
+  ${sensor_msgs_TARGETS}
+  tf2_geometry_msgs::tf2_geometry_msgs
+  tf2_ros::static_transform_broadcaster_node
+  tf2_ros::tf2_ros
 )
 
 add_executable(mobile_robot_simulator_node src/mobile_robot_simulator_node.cpp)
