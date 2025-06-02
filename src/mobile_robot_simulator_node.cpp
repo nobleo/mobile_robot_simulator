@@ -5,15 +5,15 @@
 int main(int argc, char **argv)
 {
     rclcpp::init(argc, argv);
-    auto nh = std::make_shared<rclcpp::Node>("mobile_robot_simulator");
+    auto node = std::make_shared<rclcpp::Node>("mobile_robot_simulator");
     
-    MobileRobotSimulator mob_sim(nh);
+    MobileRobotSimulator mob_sim(node);
     
-    RCLCPP_INFO(nh->get_logger(), "--- Starting MobileRobot simulator");
+    RCLCPP_INFO(node->get_logger(), "--- Starting MobileRobot simulator");
          
     mob_sim.start();
     
-    rclcpp::spin(nh);
+    rclcpp::spin(node);
     
     mob_sim.stop();
     

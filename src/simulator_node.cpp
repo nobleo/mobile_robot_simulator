@@ -6,13 +6,13 @@
 int main(int argc, char **argv)
 {
     ros::init(argc,argv, "mobile_robot_simulator");
-    rclcpp::Node nh;
+    rclcpp::Node node;
     
     // global rate
     float rate = 10.0;
     
-    MobileRobotSimulator mob_sim(&nh);
-    LaserScannerSimulator laser_sim(&nh);
+    MobileRobotSimulator mob_sim(&node);
+    LaserScannerSimulator laser_sim(&node);
     
     RCLCPP_INFO(rclcpp::get_logger("MobileRobotSimulator"), "--- Starting simulator");
     
@@ -26,7 +26,7 @@ int main(int argc, char **argv)
     rclcpp::Time tic = rclcpp::Time::now();
     
     spinner.start();
-    while (nh.ok() && rclcpp::Time::now()-tic<rclcpp::Duration(10.0)) {
+    while (node.ok() && rclcpp::Time::now()-tic<rclcpp::Duration(10.0)) {
         //rclcpp::spin_some(node);
         rclcpp::Duration(0.01).sleep();
     }
@@ -38,7 +38,7 @@ int main(int argc, char **argv)
     laser_sim.stop();
     
     tic = rclcpp::Time::now();
-    while (nh.ok() && rclcpp::Time::now()-tic<rclcpp::Duration(5.0)) {
+    while (node.ok() && rclcpp::Time::now()-tic<rclcpp::Duration(5.0)) {
         rclcpp::spin_some(node);
         rclcpp::Duration(0.01).sleep();
     }

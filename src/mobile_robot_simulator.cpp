@@ -4,16 +4,16 @@
 
 #include "mobile_robot_simulator/mobile_robot_simulator.h"
 
-MobileRobotSimulator::MobileRobotSimulator(const rclcpp::Node::SharedPtr& nh) :
-  logger_(nh->get_logger()),
-  clock_(nh->get_clock()),
-  tf_broadcaster(*nh)
+MobileRobotSimulator::MobileRobotSimulator(const rclcpp::Node::SharedPtr& node) :
+  logger_(node->get_logger()),
+  clock_(node->get_clock()),
+  tf_broadcaster(*node)
 {
-    nh_ptr = nh;
+    node_ = node;
     // get parameters
     get_params();
-    odom_pub = nh_ptr->create_publisher<nav_msgs::msg::Odometry>("odom",50); // odometry publisher
-    vel_sub = nh_ptr->create_subscription<geometry_msgs::msg::Twist>("cmd_vel",5,[this](geometry_msgs::msg::Twist::ConstSharedPtr msg){vel_callback(msg);}); // velocity subscriber
+    odom_pub = node_->create_publisher<nav_msgs::msg::Odometry>("odom",50); // odometry publisher
+    vel_sub = node_->create_subscription<geometry_msgs::msg::Twist>("cmd_vel",5,[this](geometry_msgs::msg::Twist::ConstSharedPtr msg){vel_callback(msg);}); // velocity subscriber
 
     // initialize timers
     last_update = clock_->now();
@@ -25,7 +25,7 @@ MobileRobotSimulator::MobileRobotSimulator(const rclcpp::Node::SharedPtr& nh) :
     // Initialize tf from map to odom
     if (publish_map_transform)
     {
-        init_pose_sub = nh_ptr->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>("/initialpose",5,[this](geometry_msgs::msg::PoseWithCovarianceStamped::ConstSharedPtr msg){init_pose_callback(msg);}); // initial pose callback
+        init_pose_sub = node_->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>("/initialpose",5,[this](geometry_msgs::msg::PoseWithCovarianceStamped::ConstSharedPtr msg){init_pose_callback(msg);}); // initial pose callback
         map_trans.header.frame_id = "/map";
         map_trans.header.stamp = last_update;
         map_trans.child_frame_id = "/odom";
@@ -43,15 +43,15 @@ MobileRobotSimulator::~MobileRobotSimulator()
 
 void MobileRobotSimulator::get_params()
 {
-     publish_map_transform = nh_ptr->declare_parameter("publish_map_transform", publish_map_transform);
-     publish_rate  = nh_ptr->declare_parameter("publish_rate", publish_rate);
-     base_link_frame  = nh_ptr->declare_parameter("base_link_frame", base_link_frame);
+     publish_map_transform = node_->declare_parameter("publish_map_transform", publish_map_transform);
+     publish_rate  = node_->declare_parameter("publish_rate", publish_rate);
+     base_link_frame  = node_->declare_parameter("base_link_frame", base_link_frame);
 }
 
 
 void MobileRobotSimulator::start()
 {
-    loop_timer = nh_ptr->create_timer(std::chrono::duration<double>(1.0/publish_rate),[this](){update_loop();});
+    loop_timer = node_->create_timer(std::chrono::duration<double>(1.0/publish_rate),[this](){update_loop();});
     is_running = true;
     RCLCPP_INFO(logger_, "Started mobile robot simulator update loop, listening on cmd_vel topic");
 }

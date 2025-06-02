@@ -17,7 +17,7 @@ class MobileRobotSimulator {
 
 public:
 
-    MobileRobotSimulator(const rclcpp::Node::SharedPtr &nh); // default constructor
+    MobileRobotSimulator(const rclcpp::Node::SharedPtr &node); // default constructor
     ~MobileRobotSimulator(); // default destructor
 
     /*! start the simulation loop */
@@ -62,7 +62,7 @@ private:
     rclcpp::Time last_update; // last time the odom was published
     rclcpp::Time measure_time; // this incoming velocity command
     bool message_received = false;
-    rclcpp::Node::SharedPtr nh_ptr;
+    rclcpp::Node::SharedPtr node_;
 
     bool is_running;
 

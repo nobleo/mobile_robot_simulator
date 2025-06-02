@@ -17,7 +17,7 @@ class LaserScannerSimulator {
     
 public:
 
-    LaserScannerSimulator(rclcpp::Node::SharedPtr nh);
+    LaserScannerSimulator(rclcpp::Node::SharedPtr node);
     ~LaserScannerSimulator();
     
     /*! updates the laser scanner parameters */
@@ -66,7 +66,7 @@ private:
     
     rclcpp::Logger logger_;
     rclcpp::Clock::SharedPtr clock_;
-    rclcpp::Node::SharedPtr nh_ptr;
+    rclcpp::Node::SharedPtr node_;
     rclcpp::Publisher<sensor_msgs::msg::LaserScan>::SharedPtr laser_pub; // scan publisher
     rclcpp::Client<nav_msgs::srv::GetMap>::SharedPtr map_service_;
     tf2_ros::Buffer buffer_;

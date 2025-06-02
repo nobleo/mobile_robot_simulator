@@ -3,14 +3,14 @@
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 #include "mobile_robot_simulator/laser_simulator.h"
 
-LaserScannerSimulator::LaserScannerSimulator(rclcpp::Node::SharedPtr nh)
-  : logger_(nh->get_logger()), clock_(nh->get_clock()), buffer_(clock_), tl(buffer_)
+LaserScannerSimulator::LaserScannerSimulator(rclcpp::Node::SharedPtr node)
+  : logger_(node->get_logger()), clock_(node->get_clock()), buffer_(clock_), tl(buffer_)
 {
-    nh_ptr = nh;
+    node_ = node;
     // get parameters
     get_params();
-    laser_pub = nh_ptr->create_publisher<sensor_msgs::msg::LaserScan>("scan",10); // scan publisher
-    map_service_ = nh_ptr->create_client<nav_msgs::srv::GetMap>("map_server/map");
+    laser_pub = node_->create_publisher<sensor_msgs::msg::LaserScan>("scan",10); // scan publisher
+    map_service_ = node_->create_client<nav_msgs::srv::GetMap>("map_server/map");
     // get map
     get_map();
     RCLCPP_INFO(logger_, "Initialized laser scanner simulator");
@@ -24,20 +24,20 @@ LaserScannerSimulator::~LaserScannerSimulator()
 void LaserScannerSimulator::get_params()
 {
     //laser parameters - defaults are appriximately that of a Sick S300
-    l_frame = nh_ptr->declare_parameter("laser_frame_id", "base_link");
-    l_fov = nh_ptr->declare_parameter("laser_fov", 1.5*M_PI);
-    l_beams = nh_ptr->declare_parameter("laser_beam_count", 541);
-    l_max_range = nh_ptr->declare_parameter("laser_max_range", 30.0);
-    l_min_range = nh_ptr->declare_parameter("laser_min_range", 0.05);
-    l_frequency = nh_ptr->declare_parameter("laser_frequency", 10.0);
+    l_frame = node_->declare_parameter("laser_frame_id", "base_link");
+    l_fov = node_->declare_parameter("laser_fov", 1.5*M_PI);
+    l_beams = node_->declare_parameter("laser_beam_count", 541);
+    l_max_range = node_->declare_parameter("laser_max_range", 30.0);
+    l_min_range = node_->declare_parameter("laser_min_range", 0.05);
+    l_frequency = node_->declare_parameter("laser_frequency", 10.0);
     // noise model parameters (see Probabilistic Robotics eq. 6.12)
-    use_noise_model = nh_ptr->declare_parameter("apply_noise", true);
-    sigma_hit = nh_ptr->declare_parameter("sigma_hit", 0.005);
-    lambda_short = nh_ptr->declare_parameter("lambda_short", 2.0);
-    z_mix[0] = nh_ptr->declare_parameter("z_hit", 0.995);
-    z_mix[1] = nh_ptr->declare_parameter("z_short", 0.0);
-    z_mix[2] = nh_ptr->declare_parameter("z_max", 0.005);
-    z_mix[3] = nh_ptr->declare_parameter("z_rand", 0.0);
+    use_noise_model = node_->declare_parameter("apply_noise", true);
+    sigma_hit = node_->declare_parameter("sigma_hit", 0.005);
+    lambda_short = node_->declare_parameter("lambda_short", 2.0);
+    z_mix[0] = node_->declare_parameter("z_hit", 0.995);
+    z_mix[1] = node_->declare_parameter("z_short", 0.0);
+    z_mix[2] = node_->declare_parameter("z_max", 0.005);
+    z_mix[3] = node_->declare_parameter("z_rand", 0.0);
     // update the noise model internally
     set_noise_params(use_noise_model, sigma_hit, lambda_short, z_mix[0], z_mix[1], z_mix[2], z_mix[3]);
 }
@@ -45,7 +45,7 @@ void LaserScannerSimulator::get_params()
 void LaserScannerSimulator::start()
 {
     using std::chrono_literals::operator""s;
-    loop_timer = nh_ptr->create_timer(1.0s/l_frequency, std::bind(&LaserScannerSimulator::update_loop, this));
+    loop_timer = node_->create_timer(1.0s/l_frequency, std::bind(&LaserScannerSimulator::update_loop, this));
     is_running = true;
     RCLCPP_INFO(logger_, "Started laser scanner simulator update loop");
 }
