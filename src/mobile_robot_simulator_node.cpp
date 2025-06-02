@@ -1,28 +1,19 @@
-#include "ros/ros.h"
+#include "rclcpp/rclcpp.hpp"
 
 #include "mobile_robot_simulator/mobile_robot_simulator.h"
 
 int main(int argc, char **argv)
 {
-    ros::init(argc,argv, "mobile_robot_simulator");
-    ros::NodeHandle nh("~");
-    ros::Duration(0.1).sleep();
+    rclcpp::init(argc, argv);
+    auto node = std::make_shared<rclcpp::Node>("mobile_robot_simulator");
     
-    MobileRobotSimulator mob_sim(&nh);
-    ros::AsyncSpinner spinner(1);
+    MobileRobotSimulator mob_sim(node);
     
-    ROS_INFO("--- Starting MobileRobot simulator");
-    
-    ros::Duration(0.1).sleep();
-     
+    RCLCPP_INFO(node->get_logger(), "--- Starting MobileRobot simulator");
+         
     mob_sim.start();
     
-    spinner.start();
-    while (nh.ok()) {
-        //ros::spinOnce();
-        ros::Duration(0.01).sleep();
-    }
-    spinner.stop();
+    rclcpp::spin(node);
     
     mob_sim.stop();
     

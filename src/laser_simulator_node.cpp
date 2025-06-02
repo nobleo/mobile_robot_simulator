@@ -1,27 +1,19 @@
-#include "ros/ros.h"
+#include "rclcpp/rclcpp.hpp"
 
 #include "mobile_robot_simulator/laser_simulator.h"
 
 int main(int argc, char **argv)
 {
-    ros::init(argc,argv, "laser_simulator");
-    ros::NodeHandle nh("~");
+    rclcpp::init(argc, argv);
+    auto node = std::make_shared<rclcpp::Node>("laser_simulator");
         
-    LaserScannerSimulator laser_sim(&nh);
-    ros::AsyncSpinner spinner(1);
+    LaserScannerSimulator laser_sim(node);
     
-    ROS_INFO("--- Starting LaserScanner simulator");
-    
-    ros::Duration(0.5).sleep();
-    
+    RCLCPP_INFO(rclcpp::get_logger("MobileRobotSimulator"), "--- Starting LaserScanner simulator");
+        
     laser_sim.start();
     
-    spinner.start();
-    while (nh.ok()) {
-        //ros::spinOnce();
-        ros::Duration(0.01).sleep();
-    }
-    spinner.stop();
+    rclcpp::spin(node);
     
     laser_sim.stop();
     

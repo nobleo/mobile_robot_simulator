@@ -1,13 +1,12 @@
-#include "ros/ros.h"
-#include "ros/console.h"
+#include "rclcpp/rclcpp.hpp"
 
-#include "geometry_msgs/Twist.h"
-#include "tf/LinearMath/Transform.h"
-#include "geometry_msgs/PoseWithCovarianceStamped.h"
-#include "nav_msgs/Odometry.h"
+#include <geometry_msgs/msg/twist.hpp>
+#include "tf2/LinearMath/Transform.hpp"
+#include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
+#include <nav_msgs/msg/odometry.hpp>
 
-#include <tf/transform_broadcaster.h>
-#include <tf/transform_datatypes.h>
+#include <tf2_ros/transform_broadcaster.h>
+#include <tf2/transform_datatypes.hpp>
 
 #include <functional>
 
@@ -18,7 +17,7 @@ class MobileRobotSimulator {
 
 public:
 
-    MobileRobotSimulator(ros::NodeHandle *nh); // default constructor
+    MobileRobotSimulator(const rclcpp::Node::SharedPtr &node); // default constructor
     ~MobileRobotSimulator(); // default destructor
 
     /*! start the simulation loop */
@@ -27,7 +26,7 @@ public:
     /*! stop everything */
     void stop();
 
-    bool publish_map_transform; // whether or not to publish the map transform
+    bool publish_map_transform = false; // whether or not to publish the map transform
 
 
 private:
@@ -36,46 +35,46 @@ private:
     void get_params();
 
     /*! main update loop */
-    void update_loop(const ros::TimerEvent& event);
+    void update_loop();
 
     /*! update the odometry info based on velocity and duration */
-    void update_odom_from_vel(geometry_msgs::Twist vel, ros::Duration time_diff);
+    void update_odom_from_vel(geometry_msgs::msg::Twist vel, rclcpp::Duration time_diff);
 
     /*! generate transform from odom */
-    void get_tf_from_odom(nav_msgs::Odometry odom);
+    void get_tf_from_odom(nav_msgs::msg::Odometry odom);
 
     /*! callback function for velocity */
-    void vel_callback(const geometry_msgs::Twist::ConstPtr& msg);
+    void vel_callback(const geometry_msgs::msg::Twist::ConstSharedPtr& msg);
 
     /*! initial pose callback function */
-    void init_pose_callback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& msg);
+    void init_pose_callback(const geometry_msgs::msg::PoseWithCovarianceStamped::ConstSharedPtr& msg);
 
-    double publish_rate;
+    double publish_rate = 10;
 
-    nav_msgs::Odometry odom; // odometry message
-    tf::StampedTransform odom_trans; // odometry transform
-    tf::StampedTransform map_trans; // transformation from odom to map
+    rclcpp::Logger logger_;
+    rclcpp::Clock::ConstSharedPtr clock_;
 
-    ros::Time last_vel; // last incoming velocity command
-    ros::Time last_update; // last time the odom was published
-    ros::Time measure_time; // this incoming velocity command
+    nav_msgs::msg::Odometry odom; // odometry message
+    tf2::Stamped<tf2::Transform> odom_trans; // odometry transform
+    geometry_msgs::msg::TransformStamped map_trans; // transformation from odom to map
+
+    rclcpp::Time last_vel; // last incoming velocity command
+    rclcpp::Time last_update; // last time the odom was published
+    rclcpp::Time measure_time; // this incoming velocity command
     bool message_received = false;
-    ros::NodeHandle * nh_ptr;
+    rclcpp::Node::SharedPtr node_;
 
     bool is_running;
 
     // ROS interfaces
-    ros::Publisher odom_pub;
-    ros::Subscriber vel_sub;
-    ros::Subscriber init_pose_sub;
-    tf::TransformBroadcaster tf_broadcaster;
+    rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub;
+    rclcpp::Subscription<geometry_msgs::msg::Twist>::ConstSharedPtr vel_sub;
+    rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::ConstSharedPtr init_pose_sub;
+    tf2_ros::TransformBroadcaster tf_broadcaster;
 
-    //Topics
-    std::string velocity_topic;
-    std::string odometry_topic;
-    std::string base_link_frame;
+    std::string base_link_frame = "base_link";
 
-    ros::Timer loop_timer; // timer for the update loop
+    rclcpp::TimerBase::SharedPtr loop_timer; // timer for the update loop
 
     double th = 0.0; // current pose (only need yaw, rest is calculated)
 
