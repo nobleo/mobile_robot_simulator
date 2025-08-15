@@ -13,12 +13,19 @@ MobileRobotSimulator::MobileRobotSimulator(const rclcpp::Node::SharedPtr& node) 
     // get parameters
     get_params();
     odom_pub = node_->create_publisher<nav_msgs::msg::Odometry>("odom",50); // odometry publisher
-    vel_sub = node_->create_subscription<geometry_msgs::msg::Twist>("cmd_vel",5,[this](geometry_msgs::msg::Twist::ConstSharedPtr msg){vel_callback(msg);}); // velocity subscriber
+    if (node_->declare_parameter("cmd_vel_stamped", true))
+    {
+        vel_stamped_sub = node_->create_subscription<geometry_msgs::msg::TwistStamped>("cmd_vel",5,
+            [this](geometry_msgs::msg::TwistStamped::ConstSharedPtr msg){vel_callback(msg->twist);});
+    } else {
+        vel_sub = node_->create_subscription<geometry_msgs::msg::Twist>("cmd_vel",5,
+            [this](geometry_msgs::msg::Twist::ConstSharedPtr msg){vel_callback(*msg);});
+    }
 
     // initialize timers
     last_update = clock_->now();
     last_vel = last_update - rclcpp::Duration::from_seconds(0.1);
-    // initialize forst odom message
+    // initialize first odom message
     update_odom_from_vel(geometry_msgs::msg::Twist(), rclcpp::Duration::from_seconds(0.1));
     odom.header.stamp = last_update;
     get_tf_from_odom(odom);
@@ -124,7 +131,7 @@ void MobileRobotSimulator::get_tf_from_odom(nav_msgs::msg::Odometry odom)
     tf2::convert(odom_tmp, odom_trans);
 }
 
-void MobileRobotSimulator::vel_callback(const geometry_msgs::msg::Twist::ConstSharedPtr& msg)
+void MobileRobotSimulator::vel_callback(const geometry_msgs::msg::Twist& vel)
 {
     RCLCPP_DEBUG(logger_, "Received message on cmd_vel");
     measure_time = clock_->now();
@@ -132,7 +139,6 @@ void MobileRobotSimulator::vel_callback(const geometry_msgs::msg::Twist::ConstSh
     last_vel = measure_time;
     if (dt >= rclcpp::Duration::from_seconds(0.5)) dt = rclcpp::Duration::from_seconds(0.1);
     message_received = true;
-    geometry_msgs::msg::Twist vel = *msg;
     update_odom_from_vel(vel,dt);
 }
 
@@ -157,6 +163,3 @@ void MobileRobotSimulator::init_pose_callback(const geometry_msgs::msg::PoseWith
     map_trans.header.stamp = msg->header.stamp;
     tf2::convert(map_t, map_trans.transform);
 }
-
-
-
