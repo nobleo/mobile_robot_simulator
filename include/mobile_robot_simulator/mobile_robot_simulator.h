@@ -1,6 +1,7 @@
 #include "rclcpp/rclcpp.hpp"
 
 #include <geometry_msgs/msg/twist.hpp>
+#include <geometry_msgs/msg/twist_stamped.hpp>
 #include "tf2/LinearMath/Transform.hpp"
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <nav_msgs/msg/odometry.hpp>
@@ -44,7 +45,8 @@ private:
     void get_tf_from_odom(nav_msgs::msg::Odometry odom);
 
     /*! callback function for velocity */
-    void vel_callback(const geometry_msgs::msg::Twist::ConstSharedPtr& msg);
+    void vel_callback(const geometry_msgs::msg::Twist& vel);
+    void vel_stamped_callback(const geometry_msgs::msg::TwistStamped::ConstSharedPtr& msg);
 
     /*! initial pose callback function */
     void init_pose_callback(const geometry_msgs::msg::PoseWithCovarianceStamped::ConstSharedPtr& msg);
@@ -69,6 +71,7 @@ private:
     // ROS interfaces
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub;
     rclcpp::Subscription<geometry_msgs::msg::Twist>::ConstSharedPtr vel_sub;
+    rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::ConstSharedPtr vel_stamped_sub;
     rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::ConstSharedPtr init_pose_sub;
     tf2_ros::TransformBroadcaster tf_broadcaster;
 
