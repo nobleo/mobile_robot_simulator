@@ -4,8 +4,8 @@
 #include <nav_msgs/srv/get_map.hpp>
 #include <sensor_msgs/msg/laser_scan.hpp>
 
-#include "tf2_ros/buffer.h"
-#include "tf2_ros/transform_listener.h"
+#include <tf2_ros/buffer.hpp>
+#include <tf2_ros/transform_listener.hpp>
 
 #include <math.h>
 #include <random>
@@ -14,21 +14,21 @@
 #define LASER_SIMULATOR
 
 class LaserScannerSimulator {
-    
+
 public:
 
     LaserScannerSimulator(rclcpp::Node::SharedPtr node);
     ~LaserScannerSimulator();
-    
+
     /*! updates the laser scanner parameters */
     void set_laser_params(std::string frame_id, double fov, unsigned int beam_count, double max_range, double min_range, double l_frequency);
-    
+
     /*! updates the noise model parameters */
-    void set_noise_params(bool use_model, double sigma_hit_reading, double lambda_short_reading, double z_hit, double z_short, double z_max, double z_rand); 
+    void set_noise_params(bool use_model, double sigma_hit_reading, double lambda_short_reading, double z_hit, double z_short, double z_max, double z_rand);
 
     /*! start the simulation loop */
-    void start(); // 
-    
+    void start(); //
+
     /*! stop everything */
     void stop();
 
@@ -36,52 +36,52 @@ public:
 private:
 
     void update_loop();
-    
+
     /*! gets the current map */
     void get_map();
-    
+
     /*! gets parameters from the parameter server */
     void get_params();
-    
+
     /*! finds the pose of the laser in the map frame */
     void get_laser_pose(double * x, double * y, double * theta);
-    
+
     /*! updates the laser scan based on current 2D pose of the scanner in map coordinates */
     void update_scan(double x, double y, double theta);
-    
+
     /*! raytracing, calculates intersection with the map for a single ray */
     double find_map_range(double x, double y, double theta);
-    
+
     /*! applies sensor noise to the calculated range */
     double apply_range_noise(double range_reading);
-    
+
     /*! get map cell corresponding to real-world coordinates */
     void get_world2map_coordinates(double x, double y, int * map_x, int * map_y);
-    
+
     /*! get real-world coordinates of map cell */
     void get_map2world_coordinates(int map_x, int map_y, double * x, double * y);
-    
+
     /*! get occupancy of specified cell */
     int get_map_occupancy(int x, int y);
-    
+
     rclcpp::Logger logger_;
     rclcpp::Clock::SharedPtr clock_;
     rclcpp::Node::SharedPtr node_;
     rclcpp::Publisher<sensor_msgs::msg::LaserScan>::SharedPtr laser_pub; // scan publisher
     rclcpp::Client<nav_msgs::srv::GetMap>::SharedPtr map_service_;
     tf2_ros::Buffer buffer_;
-    tf2_ros::TransformListener tl; 
-    
+    tf2_ros::TransformListener tl;
+
     rclcpp::TimerBase::SharedPtr loop_timer; // timer for the update loop
     bool is_running;
-    
-    // map 
+
+    // map
     std::string map_service;
     nav_msgs::msg::OccupancyGrid map; //map data
     bool have_map;
-    
+
     std::string l_scan_topic;
-   
+
     // laser parameters
     std::string l_frame;
     double l_fov; // field of view, centered at pose of laser
@@ -90,7 +90,7 @@ private:
     double l_min_range; // min range of the laser scan
     double l_frequency; // frequency of laser scans
     tf2::Stamped<tf2::Transform> rob_laser_tf; // transform from robot to laser (assumed static)
-    
+
     // noise model parameters (see Probabilistic Robotics eq. 6.12)
     bool use_noise_model;
     double sigma_hit; // stddev of measurement noise
@@ -102,7 +102,7 @@ private:
     std::normal_distribution<double> p_hit; // gaussian noise on detection
     std::exponential_distribution<double> p_short; // short readings
     std::uniform_real_distribution<double> p_rand; // random, "phantom" readings
-    
+
     // output
     sensor_msgs::msg::LaserScan output_scan;
 
