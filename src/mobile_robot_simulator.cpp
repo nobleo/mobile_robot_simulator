@@ -7,16 +7,13 @@
 
 MobileRobotSimulator::MobileRobotSimulator(const rclcpp::Node::SharedPtr& node) :
   logger_(node->get_logger()),
-  clock_(node->get_clock()),
   tf_broadcaster(*node)
 {
     node_ = node;
     // get parameters
     get_params();
 
-    if (provide_sim_time_) {
-        clock_pub_ = node_->create_publisher<rosgraph_msgs::msg::Clock>("/clock", 1);
-    }
+    clock_pub_ = node_->create_publisher<rosgraph_msgs::msg::Clock>("/clock", 1);
 
     odom_pub = node_->create_publisher<nav_msgs::msg::Odometry>("odom",50); // odometry publisher
     if (node_->declare_parameter("cmd_vel_stamped", true))
@@ -60,13 +57,7 @@ void MobileRobotSimulator::get_params()
      publish_rate  = node_->declare_parameter("publish_rate", publish_rate);
      base_link_frame  = node_->declare_parameter("base_link_frame", base_link_frame);
 
-    node_->declare_parameter<double>("speed_factor");
-
-    if (rclcpp::Parameter param; node_->get_parameter("speed_factor", param))
-    {
-        speed_factor_ = param.as_double();
-        provide_sim_time_ = true;
-    }
+    speed_factor_ = node_->declare_parameter("speed_factor", speed_factor_);
 
     param_callback_handle_ = node_->add_on_set_parameters_callback(
         [this](const auto & params) {
@@ -84,7 +75,7 @@ void MobileRobotSimulator::get_params()
 void MobileRobotSimulator::start()
 {
     wall_time_origin_ = std::chrono::steady_clock::now();
-    loop_timer = node_->create_timer(std::chrono::duration<double>(1.0/publish_rate),[this](){update_loop();});
+    loop_timer = node_->create_wall_timer(std::chrono::duration<double>(1.0/publish_rate),[this](){update_loop();});
     is_running = true;
     RCLCPP_INFO(logger_, "Started mobile robot simulator update loop, listening on cmd_vel topic");
 }
@@ -99,12 +90,10 @@ void MobileRobotSimulator::stop()
 void MobileRobotSimulator::update_loop()
 {
     last_update = now();
-    // publish /clock if speed_factor is set
-    if (provide_sim_time_) {
-        rosgraph_msgs::msg::Clock clock_msg;
-        clock_msg.clock = last_update;
-        clock_pub_->publish(clock_msg);
-    }
+    // publish /clock
+    rosgraph_msgs::msg::Clock clock_msg;
+    clock_msg.clock = last_update;
+    clock_pub_->publish(clock_msg);
     // If we didn't receive a message, send the old odometry info with a new timestamp
     if (!message_received)
     {
@@ -176,13 +165,10 @@ void MobileRobotSimulator::vel_callback(const geometry_msgs::msg::Twist& vel)
 
 rclcpp::Time MobileRobotSimulator::now()
 {
-    if (provide_sim_time_) {
-        auto wall_now = std::chrono::steady_clock::now();
-        auto sim_elapsed = (wall_now - wall_time_origin_) * speed_factor_;
-        auto sim_elapsed_ns = static_cast<int64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(sim_elapsed).count());
-        return rclcpp::Time{sim_elapsed_ns, RCL_ROS_TIME};
-    }
-    return clock_->now();
+    auto wall_now = std::chrono::steady_clock::now();
+    auto sim_elapsed = (wall_now - wall_time_origin_) * speed_factor_;
+    auto sim_elapsed_ns = static_cast<int64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(sim_elapsed).count());
+    return rclcpp::Time{sim_elapsed_ns, RCL_ROS_TIME};
 }
 
 void MobileRobotSimulator::init_pose_callback(const geometry_msgs::msg::PoseWithCovarianceStamped::ConstSharedPtr& msg)

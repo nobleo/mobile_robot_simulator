@@ -58,10 +58,8 @@ private:
 
     double publish_rate = 10;
     double speed_factor_ = 1.0;
-    bool provide_sim_time_ = false;
 
     rclcpp::Logger logger_;
-    rclcpp::Clock::ConstSharedPtr clock_;
 
     nav_msgs::msg::Odometry odom; // odometry message
     tf2::Stamped<tf2::Transform> odom_trans; // odometry transform
