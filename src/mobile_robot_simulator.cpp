@@ -1,5 +1,6 @@
 #include "rclcpp/rclcpp.hpp"
 #include <rcl_interfaces/msg/set_parameters_result.hpp>
+#include <rclcpp/qos.hpp>
 #include <tf2_ros/buffer_interface.hpp>
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 
@@ -13,7 +14,7 @@ MobileRobotSimulator::MobileRobotSimulator(const rclcpp::Node::SharedPtr& node) 
     // get parameters
     get_params();
 
-    clock_pub_ = node_->create_publisher<rosgraph_msgs::msg::Clock>("/clock", 1);
+    clock_pub_ = node_->create_publisher<rosgraph_msgs::msg::Clock>("/clock", rclcpp::ClockQoS());
 
     odom_pub = node_->create_publisher<nav_msgs::msg::Odometry>("odom",50); // odometry publisher
     if (node_->declare_parameter("cmd_vel_stamped", true))
