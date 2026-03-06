@@ -58,7 +58,7 @@ private:
 
     double publish_rate = 10;
     double speed_factor_ = 1.0;
-    bool use_sim_time_ = false;
+    bool provide_sim_time_ = false;
 
     rclcpp::Logger logger_;
     rclcpp::Clock::ConstSharedPtr clock_;
