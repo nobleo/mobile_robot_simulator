@@ -1,10 +1,12 @@
 #include "rclcpp/rclcpp.hpp"
 
+#include <chrono>
 #include <geometry_msgs/msg/twist.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
 #include "tf2/LinearMath/Transform.hpp"
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <nav_msgs/msg/odometry.hpp>
+#include <rosgraph_msgs/msg/clock.hpp>
 
 #include <tf2_ros/transform_broadcaster.hpp>
 #include <tf2/transform_datatypes.hpp>
@@ -51,10 +53,13 @@ private:
     /*! initial pose callback function */
     void init_pose_callback(const geometry_msgs::msg::PoseWithCovarianceStamped::ConstSharedPtr& msg);
 
+    /*! get current time (sim_time or wall clock) */
+    rclcpp::Time now();
+
     double publish_rate = 10;
+    double speed_factor_ = 1.0;
 
     rclcpp::Logger logger_;
-    rclcpp::Clock::ConstSharedPtr clock_;
 
     nav_msgs::msg::Odometry odom; // odometry message
     tf2::Stamped<tf2::Transform> odom_trans; // odometry transform
@@ -78,6 +83,9 @@ private:
     std::string base_link_frame = "base_link";
 
     rclcpp::TimerBase::SharedPtr loop_timer; // timer for the update loop
+    rclcpp::Publisher<rosgraph_msgs::msg::Clock>::SharedPtr clock_pub_;
+    std::chrono::steady_clock::time_point wall_time_origin_;
+    rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr param_callback_handle_;
 
     double th = 0.0; // current pose (only need yaw, rest is calculated)
 

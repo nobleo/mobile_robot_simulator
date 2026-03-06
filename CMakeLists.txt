@@ -9,6 +9,7 @@ find_package(ament_cmake REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(rosgraph_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
@@ -25,6 +26,7 @@ add_library(mobile_robot_simulator
 target_link_libraries(mobile_robot_simulator PUBLIC
   ${geometry_msgs_TARGETS}
   ${nav_msgs_TARGETS}
+  ${rosgraph_msgs_TARGETS}
   ${sensor_msgs_TARGETS}
   tf2_geometry_msgs::tf2_geometry_msgs
   tf2_ros::static_transform_broadcaster_node
@@ -50,7 +52,13 @@ add_executable(laser_scanner_simulator_node src/laser_simulator_node.cpp)
 target_link_libraries(laser_scanner_simulator_node laser_simulator)
 
 ament_export_include_directories(include)
-ament_export_dependencies(geometry_msgs nav_msgs rclcpp tf2_ros sensor_msgs)
+ament_export_dependencies(
+  geometry_msgs
+  nav_msgs
+  rclcpp
+  rosgraph_msgs
+  tf2_ros sensor_msgs
+)
 ament_package()
 
 #############
