@@ -45,7 +45,7 @@ void LaserScannerSimulator::get_params()
 void LaserScannerSimulator::start()
 {
     using std::chrono_literals::operator""s;
-    loop_timer = node_->create_timer(1.0s/l_frequency, std::bind(&LaserScannerSimulator::update_loop, this));
+    loop_timer = rclcpp::create_timer(node_, node_->get_clock(), 1.0s/l_frequency, std::bind(&LaserScannerSimulator::update_loop, this));
     is_running = true;
     RCLCPP_INFO(logger_, "Started laser scanner simulator update loop");
 }
