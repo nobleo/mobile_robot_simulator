@@ -28,7 +28,7 @@ MobileRobotSimulator::MobileRobotSimulator(const rclcpp::Node::SharedPtr& node) 
 
     // initialize timers
     last_update = rclcpp::Time{0, 0, RCL_ROS_TIME};
-    last_vel = last_update - rclcpp::Duration::from_seconds(0.1);
+    last_vel = rclcpp::Time{0, 0, RCL_ROS_TIME};
 
     // initialize first odom message
     update_odom_from_vel(geometry_msgs::msg::Twist(), rclcpp::Duration::from_seconds(0.1));
@@ -77,8 +77,6 @@ void MobileRobotSimulator::get_params()
 void MobileRobotSimulator::start()
 {
     wall_time_origin_ = std::chrono::steady_clock::now();
-    last_update = now();
-    last_vel = last_update - rclcpp::Duration::from_seconds(0.1);
     loop_timer = node_->create_wall_timer(std::chrono::duration<double>(1.0/publish_rate),[this](){update_loop();});
     is_running = true;
     RCLCPP_INFO(logger_, "Started mobile robot simulator update loop, listening on cmd_vel topic");
