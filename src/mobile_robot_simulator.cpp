@@ -27,8 +27,9 @@ MobileRobotSimulator::MobileRobotSimulator(const rclcpp::Node::SharedPtr& node) 
     }
 
     // initialize timers
-    last_update = now();
-    last_vel = last_update - rclcpp::Duration::from_seconds(0.1);
+    last_update = rclcpp::Time{0, 0, RCL_ROS_TIME};
+    last_vel = rclcpp::Time{0, 0, RCL_ROS_TIME};
+
     // initialize first odom message
     update_odom_from_vel(geometry_msgs::msg::Twist(), rclcpp::Duration::from_seconds(0.1));
     odom.header.stamp = last_update;
