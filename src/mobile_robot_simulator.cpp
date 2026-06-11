@@ -26,6 +26,11 @@ MobileRobotSimulator::MobileRobotSimulator(const rclcpp::Node::SharedPtr& node) 
             [this](geometry_msgs::msg::Twist::ConstSharedPtr msg){vel_callback(*msg);});
     }
 
+    // initialize timers
+    wall_time_origin_ = std::chrono::steady_clock::now();
+    last_update = now();
+    last_vel = last_update - rclcpp::Duration::from_seconds(0.1);
+
     // initialize first odom message
     update_odom_from_vel(geometry_msgs::msg::Twist(), rclcpp::Duration::from_seconds(0.1));
     odom.header.stamp = last_update;
