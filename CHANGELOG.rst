@@ -2,8 +2,8 @@
 Changelog for package mobile_robot_simulator
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.0.1 (2026-06-25)
+------------------
 * Fix first movement delta being way too large (`#10 <https://github.com/nobleo/mobile_robot_simulator/issues/10>`_)
 * Backport the code to humble
 * Contributors: Ramon Wijnands
