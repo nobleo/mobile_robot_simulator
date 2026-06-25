@@ -3,7 +3,7 @@
 
 <package format="3">
   <name>mobile_robot_simulator</name>
-  <version>2.0.0</version>
+  <version>2.0.1</version>
   <description>The mobile_robot_simulator package</description>
 
   <maintainer email="tim.clephas@nobleo.nl">Tim Clephas</maintainer>
