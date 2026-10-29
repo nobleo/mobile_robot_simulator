@@ -51,16 +51,6 @@ target_link_libraries(mobile_robot_simulator_node mobile_robot_simulator)
 add_executable(laser_scanner_simulator_node src/laser_simulator_node.cpp)
 target_link_libraries(laser_scanner_simulator_node laser_simulator)
 
-ament_export_include_directories(include)
-ament_export_dependencies(
-  geometry_msgs
-  nav_msgs
-  rclcpp
-  rosgraph_msgs
-  tf2_ros sensor_msgs
-)
-ament_package()
-
 #############
 ## Install ##
 #############
@@ -76,3 +66,19 @@ install(
 install(TARGETS mobile_robot_simulator_node laser_scanner_simulator_node
   DESTINATION lib/${PROJECT_NAME}
 )
+
+install(FILES README.md
+  DESTINATION share/${PROJECT_NAME}
+)
+
+ament_export_include_directories(include)
+ament_export_dependencies(
+  geometry_msgs
+  nav_msgs
+  rclcpp
+  rosgraph_msgs
+  sensor_msgs
+  tf2_ros
+)
+
+ament_package()
